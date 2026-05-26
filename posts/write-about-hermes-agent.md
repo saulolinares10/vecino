@@ -1,0 +1,35 @@
+---
+title: The most important AI use case isn't in San Francisco
+published: false
+tags: hermesagentchallenge, devchallenge, agents
+---
+
+*This is a submission for the [Hermes Agent Challenge](https://dev.to/challenges/hermes-agent-2026-05-15): Write About Hermes Agent*
+
+The informal economy accounts for more than 60% of employment in Latin America. In Venezuela, the number is higher — economists stopped agreeing on exactly how high after the formal economy contracted by 80% between 2013 and 2021. Most of that activity is not tracked in software. It's tracked in notebooks, in memory, in WhatsApp voice messages sent to a cousin who writes things down. The people running these businesses are not less intelligent than the people who use enterprise software. They just operate in an environment that enterprise software was not designed to reach.
+
+I'm Venezuelan. I know this not from a report but from El Cafetal — from the abastos that stayed open through hyperinflation and blackouts, from a family that ran small businesses with worn notebooks and sharp memories, from watching a commercial ecosystem survive things that no business school case study would describe as survivable. When I started building on Claude's API, that background didn't leave me. It kept raising the same question: who is this for, and who does it never reach?
+
+The last five years of AI progress have produced extraordinary tools. Almost none of them are accessible to the majority of the world's workers. Not because the technology couldn't help them — because the design assumptions exclude them before they even try. You need an account. You need a credit card, or at least a bank. You need to know what a "workspace" is, what an "integration" is, what "onboarding" means. You need English, or enough of it to navigate a settings screen. You need the time and patience to learn a new interface when the old one — the notebook, the memory — already works.
+
+These aren't small barriers. They are the product. When a team builds an AI tool and asks "how do we get users to set up their account," they have already decided who their users are. The person doing inventory in a Caracas abasto with a pre-paid phone plan is not in that conversation.
+
+WhatsApp is a different kind of infrastructure. Two billion people use it. In Latin America, Africa, and Southeast Asia it is not a messaging app with a few hundred million power users — it is the application layer of daily economic life. It is how you send money, how you confirm a delivery, how you coordinate with the supplier who doesn't have email. Any AI system that wants to reach these users has to live there, inside that interface, in that language, without asking anything new of the user except to send a message the way they already send messages. That's the design constraint that matters.
+
+---
+
+There's a version of this argument that leads to chatbots, and I want to be specific about why chatbots aren't the answer. A chatbot forgets. Every conversation starts from zero. You tell it you sell harina de maíz, café, aceite, and refrescos. Next time you open the chat, it has no idea. That is not useful to someone running a real business. That's a search engine with worse latency.
+
+An agent is different in one specific way: it builds a model of your context over time. After 30 days, it knows that Fridays are high volume. It knows you restock flour on Tuesdays. It knows your best margin is on coffee, that the Polar supplier is reliable, that the Caribe supplier has been inconsistent. None of that was programmed in as rules. It accumulated from the interactions themselves, from the inventory updates and sale logs and weekly summaries, each one adding a layer to a picture of this specific business.
+
+This is what episodic memory and skill accumulation actually mean in practice — not a technical feature, but the difference between a toy and a tool. The skill loop isn't about making the agent smarter in the abstract. It's about making it smarter about this business, this owner, this set of products that have specific names in Venezuelan informal speech that no generic NLP pipeline handles without the underlying language understanding that Claude brings. *"Me cayó un bulto de harina"* and *"llegaron 50 kg de harina"* are the same inventory update. A rule-based system catches one of them. Claude catches both, and the fifty other ways someone might say the same thing, because it understands the sentence rather than matching a pattern against it.
+
+The accumulation of that context is what turns a transaction-processing bot into something closer to a partner. Not a partner with opinions, not an advisor — just something that holds the history so the owner doesn't have to, and surfaces patterns at the right moment without being asked. *"Es viernes — suele entrar más harina los viernes."* That observation, generated from four weeks of skill records, is not impressive as a demo. It is useful as a business tool. Those are not the same thing, and most demos optimize for the former.
+
+Building Vecino — a Hermes Agent-powered WhatsApp assistant for Latin American small businesses — clarified something I had understood abstractly but not concretely. The architecture that works for an abasto in El Cafetal is not a specialized, stripped-down version of enterprise software. It is persistent memory, proactive scheduling, a familiar interface, and a language model that can handle informal speech in the language the user actually speaks. That architecture is not a compromise. It is better, for most businesses, than the dashboard-and-integration stack that enterprise software sells. Most of the world's businesses don't need a dashboard. They need something that shows up at 9pm with a summary of the day and remembers what you told it three weeks ago.
+
+The question I keep coming back to: what would the AI product landscape look like if the default design assumption was a WhatsApp number instead of an email address? Not as an edge case, not as a "localization" effort — as the primary interface. How many of the products being built right now would be designed differently? How many would be more useful to more people? The answer is most of them. Email as the identity layer and the dashboard as the primary interface are not universal truths about how software should work. They are decisions made by people who have email addresses and use dashboards, building for other people who have email addresses and use dashboards.
+
+I don't know if Vecino will find its way to El Cafetal. Distribution is a harder problem than architecture, and the people who need it most are the hardest to reach. But the architecture exists now. The repo is open. And if someone in Lagos or Jakarta or Medellín looks at this and thinks: I know the version of this that works for my informal economy, my language, my products — every piece is there.
+
+The most important AI use case isn't in San Francisco. It's wherever someone is doing the math in their head because no system ever bothered to reach them. We have the technology to change that. The question is whether we bother to design for it.
