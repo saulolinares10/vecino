@@ -20,10 +20,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-import memory
-import scheduler as sched_module
-from hermes import HermesAgent
-from hooks import low_stock_alert
+from agent import memory
+from agent import scheduler as sched_module
+from agent.hermes import HermesAgent
+from agent.hooks import low_stock_alert
 
 LOW_STOCK_THRESHOLD = float(os.environ.get("LOW_STOCK_THRESHOLD", 10))
 
