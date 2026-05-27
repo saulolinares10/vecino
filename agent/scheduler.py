@@ -15,6 +15,8 @@ import os
 from collections import Counter
 from datetime import datetime
 
+import logging
+
 import anthropic
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
@@ -24,8 +26,22 @@ import twilio_client
 
 load_dotenv()
 
-_claude = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+# Lazily initialised — reading os.environ["ANTHROPIC_API_KEY"] at module
+# level would crash the app on import if the variable isn't set yet.
+_claude: anthropic.Anthropic | None = None
 OWNER_PHONE = os.environ.get("OWNER_PHONE", os.environ.get("TWILIO_WHATSAPP_TO", ""))
+
+
+def _get_claude() -> anthropic.Anthropic:
+    global _claude
+    if _claude is None:
+        key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not key:
+            logging.warning(
+                "ANTHROPIC_API_KEY is not set — scheduled summaries will not work"
+            )
+        _claude = anthropic.Anthropic(api_key=key)
+    return _claude
 
 SUMMARY_SYSTEM = """\
 Eres Vecino, un asistente de negocios amigable para pequeños comerciantes.
@@ -59,7 +75,7 @@ def build_daily_summary() -> str:
         alerts = ", ".join(f"{i['product']} ({i['quantity']} {i['unit']})" for i in low)
         data_text += f" Stock bajo: {alerts}."
 
-    response = _claude.messages.create(
+    response = _get_claude().messages.create(
         model="claude-sonnet-4-6",
         max_tokens=200,
         system=SUMMARY_SYSTEM,
@@ -95,7 +111,7 @@ def build_weekly_summary() -> str:
             parts.append(f"Más vendidos: {top_str}.")
         data_text = " ".join(parts)
 
-    response = _claude.messages.create(
+    response = _get_claude().messages.create(
         model="claude-sonnet-4-6",
         max_tokens=250,
         system=SUMMARY_SYSTEM,

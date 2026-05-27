@@ -163,11 +163,17 @@ def on_skill_accumulate(sender: str, count: int, **kwargs):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    _scheduler = sched_module.create_scheduler()
-    _scheduler.start()
-    app.state.scheduler = _scheduler
+    import logging
+    app.state.scheduler = None
+    try:
+        _scheduler = sched_module.create_scheduler()
+        _scheduler.start()
+        app.state.scheduler = _scheduler
+    except Exception as exc:
+        logging.warning("Scheduler failed to start (scheduled summaries disabled): %s", exc)
     yield
-    _scheduler.shutdown(wait=False)
+    if app.state.scheduler is not None:
+        app.state.scheduler.shutdown(wait=False)
 
 
 # ── FastAPI app ────────────────────────────────────────────────────────────
@@ -182,6 +188,13 @@ app.add_middleware(
 )
 
 agent.mount(app)  # registers POST /webhook with Hermes WhatsApp gateway
+
+
+# ── Health ─────────────────────────────────────────────────────────────────
+
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
 
 
 # ── Operator dashboard endpoints ───────────────────────────────────────────
