@@ -12,8 +12,8 @@ import os
 import anthropic
 from dotenv import load_dotenv
 
-import memory
-import twilio_client
+from agent import memory
+from agent import twilio_client
 
 load_dotenv()
 

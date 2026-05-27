@@ -21,8 +21,8 @@ import anthropic
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 
-import memory
-import twilio_client
+from agent import memory
+from agent import twilio_client
 
 load_dotenv()
 
