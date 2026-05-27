@@ -1,0 +1,32 @@
+# Git
+.git/
+
+# Python
+agent/__pycache__/
+agent/**/__pycache__/
+**/*.pyc
+**/*.pyo
+agent/venv/
+agent/.venv/
+agent/env/
+
+# Secrets
+agent/.env
+.env
+
+# Database (never bake a local DB into the image)
+agent/*.sqlite3
+agent/vecino.db
+
+# Frontend build artifacts (not needed by the backend image)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Local Hermes global config (Railway injects secrets at runtime)
+# ~/.hermes/.env is NOT in the repo root — this is just a safeguard
+.hermes/.env
+
+# OS
+.DS_Store
+Thumbs.db
