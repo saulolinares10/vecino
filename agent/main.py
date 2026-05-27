@@ -29,19 +29,43 @@ _PHONE = os.environ.get("WHATSAPP_ALLOWED_USERS", "573227306058")
 
 
 def _run_hermes_pairing() -> None:
-    """Blocking call — run in a daemon thread at startup."""
-    try:
-        result = subprocess.run(
-            ["hermes", "whatsapp", "--phone", _PHONE],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        _PAIR_LOG.write_text(result.stdout + result.stderr, encoding="utf-8")
-    except FileNotFoundError:
-        _PAIR_LOG.write_text("hermes not found — install hermes CLI to enable pairing.\n", encoding="utf-8")
-    except Exception as exc:
-        _PAIR_LOG.write_text(f"error: {exc}\n", encoding="utf-8")
+    """Blocking call — run in a daemon thread at startup.
+    Tries each command in order; writes all output to _PAIR_LOG."""
+    _commands = [
+        ["hermes", "pairing", "--phone", _PHONE],
+        ["hermes", "whatsapp", "pair", "--phone", _PHONE],
+        ["hermes", "pairing"],
+        ["hermes", "whatsapp"],
+    ]
+
+    log_lines: list[str] = []
+
+    for cmd in _commands:
+        label = " ".join(cmd)
+        log_lines.append(f"--- trying: {label} ---\n")
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            log_lines.append(result.stdout)
+            if result.stderr:
+                log_lines.append(result.stderr)
+            _PAIR_LOG.write_text("".join(log_lines), encoding="utf-8")
+            # Stop at first command that exits cleanly
+            if result.returncode == 0:
+                return
+        except FileNotFoundError:
+            log_lines.append(f"hermes not found in PATH\n")
+            break
+        except subprocess.TimeoutExpired:
+            log_lines.append(f"timed out after 60 s\n")
+        except Exception as exc:
+            log_lines.append(f"error: {exc}\n")
+
+    _PAIR_LOG.write_text("".join(log_lines), encoding="utf-8")
 
 
 # ── Lifespan: APScheduler + pairing thread ─────────────────────────────────
