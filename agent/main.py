@@ -1,32 +1,165 @@
 """
-Vecino — WhatsApp-first business intelligence agent for Latin American small businesses.
-Powered by Hermes Agent + Claude + Twilio.
+Vecino — Hermes Agent gateway for WhatsApp business intelligence.
 
-Owner WhatsApp: +57 3227306058
+The agent handles all message processing (tool use loop, NLP, memory
+writes, low-stock alerting) through the Hermes framework. FastAPI is
+kept only for the operator dashboard API.
 """
 from __future__ import annotations
 
 import asyncio
+import json
 import os
-from contextlib import asynccontextmanager
 from collections import Counter
+from contextlib import asynccontextmanager
+from datetime import datetime
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Form, Response
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from twilio.twiml.messaging_response import MessagingResponse
-
-import memory
-import nlp
-import scheduler as sched_module
-import twilio_client
 
 load_dotenv()
 
-LOW_STOCK_THRESHOLD = 10.0
+import memory
+import scheduler as sched_module
+from hermes import HermesAgent
+from hooks import low_stock_alert
+
+LOW_STOCK_THRESHOLD = float(os.environ.get("LOW_STOCK_THRESHOLD", 10))
+
+# ── Hermes agent ───────────────────────────────────────────────────────────
+
+agent = HermesAgent(
+    name="vecino",
+    model="claude-sonnet-4-6",
+    skills_dir="skills",
+    system_file="../SOUL.md",
+)
 
 
-# ── Lifespan: start/stop APScheduler ──────────────────────────────────────
+# ── Tool registrations ─────────────────────────────────────────────────────
+
+@agent.tool
+def add_inventory(product: str, quantity: float, unit: str = "unidades") -> dict:
+    """Add incoming stock for a product. Updates the running total and returns the new record."""
+    return memory.add_inventory(product.lower().strip(), quantity, unit)
+
+
+@agent.tool
+def get_inventory(product: str = "") -> list:
+    """Return current inventory. Pass a product name to filter, or empty string for all products."""
+    return memory.get_inventory(product=product.lower().strip() if product else None)
+
+
+@agent.tool
+def log_sale(
+    product: str,
+    quantity: float,
+    unit: str = "unidades",
+    amount: float | None = None,
+) -> dict:
+    """Record a sale. Automatically deducts quantity from inventory. Returns the sale record."""
+    return memory.log_sale(product.lower().strip(), quantity, unit, amount=amount)
+
+
+@agent.tool
+def log_order(
+    supplier: str,
+    product: str,
+    quantity: float,
+    unit: str = "unidades",
+    expected_date: str = "por confirmar",
+) -> dict:
+    """Log a supplier order. Returns the logged order."""
+    return memory.log_order(
+        supplier, product.lower().strip(), quantity, unit, expected_date
+    )
+
+
+@agent.tool
+def get_low_stock(threshold: float = 10.0) -> list:
+    """Return all products with stock at or below threshold. Used for proactive alerts."""
+    return memory.get_low_stock(threshold)
+
+
+@agent.tool
+def build_daily_summary() -> str:
+    """Generate the end-of-day business summary in natural Venezuelan Spanish prose."""
+    return sched_module.build_daily_summary()
+
+
+@agent.tool
+def build_weekly_summary() -> str:
+    """Generate the weekly P&L summary in natural Venezuelan Spanish prose."""
+    return sched_module.build_weekly_summary()
+
+
+# ── Memory logging hooks ───────────────────────────────────────────────────
+
+@agent.on("message:received")
+def on_receive(sender: str, body: str, **kwargs):
+    memory.log_message(sender, "inbound", body)
+    memory.log_step("agent:receive", sender, body, "running")
+
+
+@agent.on("message:sent")
+def on_sent(sender: str, body: str, **kwargs):
+    memory.log_message(sender, "outbound", body)
+    memory.log_step("agent:reply", sender, body[:120], "done")
+
+
+@agent.on("tool:called")
+def on_tool_called(tool: str, input: dict, result: dict, **kwargs):
+    memory.log_step(
+        f"tool:{tool}",
+        json.dumps(input, ensure_ascii=False),
+        json.dumps(result, ensure_ascii=False),
+        "done",
+    )
+
+
+# ── Low-stock alert hook ───────────────────────────────────────────────────
+
+low_stock_alert.register(agent)
+
+
+# ── Skill accumulation hook ────────────────────────────────────────────────
+
+@agent.on("skill:accumulate")
+def on_skill_accumulate(sender: str, count: int, **kwargs):
+    """Every 15 interactions per business: compute and store observed patterns."""
+    sales = memory.get_sales_since(hours=168)
+    if not sales:
+        return
+
+    counter = Counter(s["product"] for s in sales)
+    top_products = [
+        {"product": p, "count": c} for p, c in counter.most_common(3)
+    ]
+
+    day_counter = Counter(
+        datetime.fromisoformat(s["timestamp"]).strftime("%A") for s in sales
+    )
+    peak_day = day_counter.most_common(1)[0][0] if day_counter else "desconocido"
+
+    memory.log_pattern(
+        at_count=count,
+        top_products=top_products,
+        peak_day=peak_day,
+        restock_notes=(
+            f"Top productos: {', '.join(p['product'] for p in top_products)}. "
+            f"Día pico: {peak_day}."
+        ),
+    )
+    memory.log_step(
+        "skill:accumulate",
+        f"sender={sender} count={count}",
+        f"top={top_products[0]['product'] if top_products else 'n/a'} peak={peak_day}",
+        "done",
+    )
+
+
+# ── Lifespan: APScheduler ──────────────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,6 +170,8 @@ async def lifespan(app: FastAPI):
     _scheduler.shutdown(wait=False)
 
 
+# ── FastAPI app ────────────────────────────────────────────────────────────
+
 app = FastAPI(title="Vecino", lifespan=lifespan)
 
 app.add_middleware(
@@ -46,199 +181,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ── Response helpers ───────────────────────────────────────────────────────
-
-def twiml(text: str) -> Response:
-    resp = MessagingResponse()
-    resp.message(text)
-    return Response(content=str(resp), media_type="application/xml")
+agent.mount(app)  # registers POST /webhook with Hermes WhatsApp gateway
 
 
-# ── Intent handlers ────────────────────────────────────────────────────────
-
-def _handle_stock_in(entities: dict) -> str:
-    product  = entities.get("product", "").strip().lower()
-    quantity = float(entities.get("quantity", 0))
-    unit     = entities.get("unit", "unidades")
-
-    if not product or quantity <= 0:
-        return "No entendí bien. ¿Qué producto llegó y en qué cantidad? 📦"
-
-    updated = memory.add_inventory(product, quantity, unit)
-    total   = updated["quantity"]
-
-    low = memory.get_low_stock(LOW_STOCK_THRESHOLD)
-    alert = ""
-    low_products = [i["product"] for i in low]
-    if product not in low_products:
-        pass  # just updated stock is fine
-    elif total <= LOW_STOCK_THRESHOLD:
-        alert = f"\n⚠️ Ojo — todavía quedan pocas unidades de {product} ({total} {unit})."
-
-    return f"Listo, anoté {quantity} {unit} de {product}. Ahora tienes {total} {unit} en total. 📦{alert}"
-
-
-def _handle_stock_query(entities: dict) -> str:
-    product = entities.get("product", "").strip().lower()
-
-    if not product:
-        items = memory.get_inventory()
-        if not items:
-            return "El inventario está vacío. Empieza anotando lo que tienes. 📋"
-        lines = [f"• {i['product']}: {i['quantity']} {i['unit']}" for i in items[:10]]
-        header = f"Inventario actual ({len(items)} productos):\n"
-        return header + "\n".join(lines)
-
-    items = memory.get_inventory(product=product)
-    if not items:
-        return f"No tengo registro de {product} en el inventario. ¿Lo ingresamos? 🤔"
-
-    item = items[0]
-    qty  = item["quantity"]
-    unit = item["unit"]
-
-    if qty <= LOW_STOCK_THRESHOLD:
-        return f"Tienes {qty} {unit} de {item['product']} 🌾 — ⚠️ stock bajo, considera pedir más pronto."
-    return f"Tienes {qty} {unit} de {item['product']} 🌾"
-
-
-def _handle_sale_log(entities: dict) -> str:
-    product  = entities.get("product", "").strip().lower()
-    quantity = float(entities.get("quantity", 0))
-    unit     = entities.get("unit", "unidades")
-    amount   = entities.get("amount")
-    if amount:
-        try:
-            amount = float(amount)
-        except (TypeError, ValueError):
-            amount = None
-
-    if not product or quantity <= 0:
-        return "No entendí bien la venta. ¿Qué vendiste y cuánto? 🧾"
-
-    memory.log_sale(product, quantity, unit, amount=amount)
-
-    # Running today's total
-    today_sales = memory.get_sales_since(hours=24)
-    today_total = sum(s["amount"] for s in today_sales if s["amount"])
-
-    reply = f"Listo, anoté {quantity} {unit} de {product} ✅"
-    if today_total:
-        reply += f" Hoy llevas {today_total:,.0f} en ventas 💵"
-    if amount:
-        reply += f" (esta venta: {amount:,.0f})"
-    reply += "."
-
-    # Low stock alert after deducting
-    inv = memory.get_inventory(product=product)
-    if inv and inv[0]["quantity"] <= LOW_STOCK_THRESHOLD:
-        reply += f"\n⚠️ El {product} está bajando — solo quedan {inv[0]['quantity']} {inv[0]['unit']}."
-
-    return reply
-
-
-def _handle_order_log(entities: dict) -> str:
-    supplier = entities.get("supplier", "proveedor").strip()
-    product  = entities.get("product", "").strip().lower()
-    quantity = float(entities.get("quantity", 0))
-    unit     = entities.get("unit", "unidades")
-    expected = entities.get("expected_date", "por confirmar")
-
-    if not product or quantity <= 0:
-        return "No entendí bien el pedido. ¿A quién le pediste, qué producto y cuánto? 📋"
-
-    memory.log_order(supplier, product, quantity, unit, expected)
-    return (
-        f"Pedido anotado ✅\n"
-        f"Proveedor: {supplier}\n"
-        f"Producto: {quantity} {unit} de {product}\n"
-        f"Llegada esperada: {expected}"
-    )
-
-
-async def _handle_summary_request() -> str:
-    return await asyncio.to_thread(sched_module.build_daily_summary)
-
-
-def _handle_unknown() -> str:
-    return (
-        "No entendí bien 😅 Puedo ayudarte con:\n"
-        "• Anotar lo que llegó: \"llegaron 50 cajas de harina\"\n"
-        "• Ver inventario: \"cuánto tengo de arroz\"\n"
-        "• Registrar una venta: \"vendí 5 bolsas de café\"\n"
-        "• Pedir a proveedor: \"pedí 100 kg a Polar\"\n"
-        "• Resumen del día: \"resumen del día\""
-    )
-
-
-# ── Endpoints ──────────────────────────────────────────────────────────────
-
-@app.post("/webhook")
-async def webhook(
-    Body: str = Form(default=""),
-    From: str = Form(default=""),
-):
-    message = Body.strip()
-    sender  = From.strip()
-
-    memory.log_step("webhook:receive", sender, message, "running")
-
-    # Parse intent in thread pool (sync Anthropic client)
-    parsed  = await asyncio.to_thread(nlp.parse_intent, message)
-    intent  = parsed.get("intent", "UNKNOWN")
-    entities = parsed.get("entities", {})
-
-    memory.log_step(f"nlp:{intent}", message, str(entities), "done")
-
-    if intent == "STOCK_IN":
-        reply = _handle_stock_in(entities)
-    elif intent == "STOCK_QUERY":
-        reply = _handle_stock_query(entities)
-    elif intent == "SALE_LOG":
-        reply = _handle_sale_log(entities)
-    elif intent == "ORDER_LOG":
-        reply = _handle_order_log(entities)
-    elif intent == "SUMMARY_REQUEST":
-        reply = await _handle_summary_request()
-    else:
-        reply = _handle_unknown()
-
-    memory.log_step("webhook:reply", intent, reply, "done")
-
-    return twiml(reply)
-
-
-@app.post("/api/summary")
-async def api_summary():
-    """Generate a daily summary in plain Spanish and return as JSON."""
-    text = await asyncio.to_thread(sched_module.build_daily_summary)
-    return {"summary": text}
-
+# ── Operator dashboard endpoints ───────────────────────────────────────────
 
 @app.get("/api/inventory")
 async def api_inventory():
-    """Return the full current inventory as JSON."""
     items = await asyncio.to_thread(memory.get_inventory)
     return {"inventory": items, "count": len(items)}
 
 
-@app.get("/api/sales")
-async def api_sales(hours: int = 24):
-    """Return sales from the last N hours (default 24)."""
-    sales = await asyncio.to_thread(memory.get_sales_since, hours)
-    return {"sales": sales, "count": len(sales)}
-
-
-@app.get("/api/orders")
-async def api_orders():
-    """Return all logged supplier orders."""
-    orders = await asyncio.to_thread(memory.get_orders)
-    return {"orders": orders, "count": len(orders)}
-
-
 @app.get("/api/steps")
 async def api_steps():
-    """Return the last 100 agent execution steps."""
     steps = await asyncio.to_thread(memory.get_steps)
     return {"steps": steps, "count": len(steps)}
+
+
+@app.get("/api/patterns")
+async def api_patterns():
+    patterns = await asyncio.to_thread(memory.get_patterns)
+    return {"patterns": patterns, "count": len(patterns)}
+
+
+@app.get("/api/messages")
+async def api_messages():
+    msgs = await asyncio.to_thread(memory.get_messages, 10)
+    return {"messages": msgs, "count": len(msgs)}

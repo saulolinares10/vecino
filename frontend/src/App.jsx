@@ -14,6 +14,11 @@ const EXAMPLES = [
   'cómo voy esta semana',
 ]
 
+const DAY_ES = {
+  Monday: 'Lunes', Tuesday: 'Martes', Wednesday: 'Miércoles',
+  Thursday: 'Jueves', Friday: 'Viernes', Saturday: 'Sábado', Sunday: 'Domingo',
+}
+
 // ── Time helpers ───────────────────────────────────────────────────────────
 
 function fmtTime(iso) {
@@ -50,6 +55,73 @@ async function apiFetch(path) {
   const res = await fetch(`${API}${path}`)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
+}
+
+// ── Pattern helpers ────────────────────────────────────────────────────────
+
+function confidenceLevel(atCount) {
+  if (atCount >= 60) return 3
+  if (atCount >= 30) return 2
+  return 1
+}
+
+function derivePatternCards(patterns) {
+  if (!patterns.length) return []
+
+  const latest = patterns[0]
+  const conf = confidenceLevel(latest.at_count)
+  const top = latest.top_products || []
+  const cards = []
+
+  if (top[0]) {
+    cards.push({
+      name: 'Producto más vendido',
+      description: `${top[0].product} — ${top[0].count} ventas registradas`,
+      confidence: conf,
+    })
+  }
+
+  if (latest.peak_day) {
+    const dayES = DAY_ES[latest.peak_day] || latest.peak_day
+    cards.push({
+      name: `${dayES}: día más activo`,
+      description: 'Alta rotación de productos este día',
+      confidence: conf,
+    })
+  }
+
+  if (top[1]) {
+    cards.push({
+      name: 'Alto movimiento',
+      description: `${top[1].product} — ${top[1].count} ventas`,
+      confidence: conf,
+    })
+  }
+
+  if (top[2]) {
+    cards.push({
+      name: 'Tercer más vendido',
+      description: `${top[2].product} con ${top[2].count} ventas`,
+      confidence: Math.max(1, conf - 1),
+    })
+  }
+
+  // Pull distinct peak-day insights from older snapshots
+  const seenDays = new Set([latest.peak_day])
+  for (const p of patterns.slice(1)) {
+    if (cards.length >= 6) break
+    if (p.peak_day && !seenDays.has(p.peak_day)) {
+      seenDays.add(p.peak_day)
+      const dayES = DAY_ES[p.peak_day] || p.peak_day
+      cards.push({
+        name: `${dayES}: reabastecimiento frecuente`,
+        description: 'Tendencia observada en períodos anteriores',
+        confidence: 1,
+      })
+    }
+  }
+
+  return cards.slice(0, 6)
 }
 
 // ── Header ─────────────────────────────────────────────────────────────────
@@ -212,7 +284,102 @@ function OrdersSection({ orders }) {
   )
 }
 
-// ── Section 4: Agent log ───────────────────────────────────────────────────
+// ── Section 4: Patrones aprendidos ────────────────────────────────────────
+
+function ConfidenceDots({ level }) {
+  return (
+    <div className="confidence-dots">
+      {[1, 2, 3].map(n => (
+        <span key={n} className={`confidence-dot${n <= level ? ' confidence-dot--on' : ''}`} />
+      ))}
+    </div>
+  )
+}
+
+function PatternsSection({ patterns }) {
+  const cards = derivePatternCards(patterns)
+
+  return (
+    <section>
+      <div className="section-header">
+        <h2 className="section-title">Lo que Vecino ha aprendido de tu negocio</h2>
+        <span className="section-meta">
+          {cards.length > 0 ? `${cards.length} patrones` : 'aprendiendo'}
+        </span>
+      </div>
+
+      {cards.length === 0 ? (
+        <div className="empty-state">
+          Vecino aprende con el uso — los patrones aparecen después de unos días 📈
+        </div>
+      ) : (
+        <div className="patterns-grid">
+          {cards.map((card, i) => (
+            <div key={i} className="pattern-card">
+              <div className="pattern-header">
+                <span className="pattern-name">{card.name}</span>
+                <ConfidenceDots level={card.confidence} />
+              </div>
+              <p className="pattern-description">{card.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ── Section 5: Últimos mensajes ────────────────────────────────────────────
+
+function MessagesSection({ messages }) {
+  const feedRef = useRef(null)
+
+  const sorted = [...messages]
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+    .slice(-8)
+
+  useEffect(() => {
+    if (feedRef.current) {
+      feedRef.current.scrollTop = feedRef.current.scrollHeight
+    }
+  }, [messages])
+
+  return (
+    <section>
+      <div className="section-header">
+        <h2 className="section-title">Conversación reciente</h2>
+        <span className="section-meta">
+          {sorted.length > 0 ? `${sorted.length} mensajes · cada 10s` : 'esperando…'}
+        </span>
+      </div>
+
+      {sorted.length === 0 ? (
+        <div className="empty-state">
+          Sin mensajes todavía. Envía algo a Vecino por WhatsApp para empezar.
+        </div>
+      ) : (
+        <div className="chat-feed" ref={feedRef}>
+          {sorted.map((msg, i) => (
+            <div
+              key={msg.id || i}
+              className={`bubble-row bubble-row--${msg.direction}`}
+            >
+              {msg.direction === 'outbound' && (
+                <span className="bubble-sender">Vecino</span>
+              )}
+              <div className={`bubble bubble--${msg.direction}`}>
+                <p className="bubble-text">{msg.body}</p>
+                <span className="bubble-time">{fmtTime(msg.timestamp)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ── Section 6: Agent log ───────────────────────────────────────────────────
 
 function StepsSection({ steps }) {
   const bottomRef = useRef(null)
@@ -282,10 +449,12 @@ function QuickReference() {
 // ── App ────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [inventory, setInventory] = useState([])
-  const [sales, setSales]         = useState([])
-  const [orders, setOrders]       = useState([])
-  const [steps, setSteps]         = useState([])
+  const [inventory, setInventory]   = useState([])
+  const [sales, setSales]           = useState([])
+  const [orders, setOrders]         = useState([])
+  const [patterns, setPatterns]     = useState([])
+  const [messages, setMessages]     = useState([])
+  const [steps, setSteps]           = useState([])
   const [loadingInv, setLoadingInv] = useState(true)
   const [lastRefresh, setLastRefresh] = useState(null)
 
@@ -312,6 +481,20 @@ export default function App() {
     } catch (e) { console.error('orders:', e) }
   }, [])
 
+  const fetchPatterns = useCallback(async () => {
+    try {
+      const data = await apiFetch('/api/patterns')
+      setPatterns(data.patterns || [])
+    } catch (e) { console.error('patterns:', e) }
+  }, [])
+
+  const fetchMessages = useCallback(async () => {
+    try {
+      const data = await apiFetch('/api/messages')
+      setMessages(data.messages || [])
+    } catch (e) { console.error('messages:', e) }
+  }, [])
+
   const fetchSteps = useCallback(async () => {
     try {
       const data = await apiFetch('/api/steps')
@@ -325,14 +508,22 @@ export default function App() {
     fetchInventory()
     fetchSales()
     fetchOrders()
+    fetchPatterns()
+    fetchMessages()
     fetchSteps()
-  }, [fetchInventory, fetchSales, fetchOrders, fetchSteps])
+  }, [fetchInventory, fetchSales, fetchOrders, fetchPatterns, fetchMessages, fetchSteps])
 
-  // Agent log auto-refreshes every 5 seconds
+  // Agent log: every 5 seconds
   useEffect(() => {
-    const timer = setInterval(fetchSteps, 5_000)
-    return () => clearInterval(timer)
+    const t = setInterval(fetchSteps, 5_000)
+    return () => clearInterval(t)
   }, [fetchSteps])
+
+  // WhatsApp feed: every 10 seconds
+  useEffect(() => {
+    const t = setInterval(fetchMessages, 10_000)
+    return () => clearInterval(t)
+  }, [fetchMessages])
 
   return (
     <div className="app">
@@ -345,6 +536,8 @@ export default function App() {
         />
         <SalesSection sales={sales} />
         <OrdersSection orders={orders} />
+        <PatternsSection patterns={patterns} />
+        <MessagesSection messages={messages} />
         <StepsSection steps={steps} />
         <QuickReference />
       </div>

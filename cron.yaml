@@ -1,0 +1,12 @@
+jobs:
+  - name: vecino-daily-summary
+    schedule: "0 21 * * *"
+    skill: vecino-summary
+    task: "Genera el resumen del día en español y envíalo por WhatsApp"
+    deliver_to: whatsapp
+
+  - name: vecino-weekly-pl
+    schedule: "0 8 * * 1"
+    skill: vecino-summary
+    task: "Genera el resumen semanal con P&L en español y envíalo por WhatsApp"
+    deliver_to: whatsapp

@@ -58,6 +58,25 @@ class AgentStep(Base):
     status      = Column(String, default="done")
 
 
+class WhatsAppMessage(Base):
+    __tablename__ = "messages"
+    id        = Column(Integer, primary_key=True, autoincrement=True)
+    sender    = Column(String, index=True)
+    direction = Column(String)  # "inbound" | "outbound"
+    body      = Column(Text)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+class LearnedPattern(Base):
+    __tablename__ = "patterns"
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp     = Column(DateTime, default=datetime.utcnow)
+    at_count      = Column(Integer)
+    top_products  = Column(Text)   # JSON array of {"product": str, "count": int}
+    peak_day      = Column(String)
+    restock_notes = Column(Text)
+
+
 Base.metadata.create_all(bind=engine)
 
 
@@ -267,6 +286,104 @@ def get_steps(limit: int = 100) -> list[dict]:
                 "input_text": r.input_text,
                 "output_text": r.output_text,
                 "status": r.status,
+            }
+            for r in rows
+        ]
+    finally:
+        db.close()
+
+
+# ── WhatsApp messages ────────────────────────────────────────────────────────
+
+def log_message(sender: str, direction: str, body: str) -> dict:
+    db = SessionLocal()
+    try:
+        msg = WhatsAppMessage(sender=sender, direction=direction, body=body)
+        db.add(msg)
+        db.commit()
+        return {
+            "id": msg.id,
+            "sender": msg.sender,
+            "direction": msg.direction,
+            "body": msg.body,
+            "timestamp": msg.timestamp.isoformat(),
+        }
+    finally:
+        db.close()
+
+
+def get_messages(limit: int = 10) -> list[dict]:
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(WhatsAppMessage)
+            .order_by(WhatsAppMessage.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+        return [
+            {
+                "id": r.id,
+                "sender": r.sender,
+                "direction": r.direction,
+                "body": r.body,
+                "timestamp": r.timestamp.isoformat(),
+            }
+            for r in rows
+        ]
+    finally:
+        db.close()
+
+
+# ── Learned patterns ─────────────────────────────────────────────────────────
+
+def log_pattern(
+    at_count: int,
+    top_products: list[dict],
+    peak_day: str,
+    restock_notes: str,
+) -> dict:
+    import json as _json
+    db = SessionLocal()
+    try:
+        pattern = LearnedPattern(
+            at_count=at_count,
+            top_products=_json.dumps(top_products, ensure_ascii=False),
+            peak_day=peak_day,
+            restock_notes=restock_notes,
+        )
+        db.add(pattern)
+        db.commit()
+        return {
+            "id": pattern.id,
+            "timestamp": pattern.timestamp.isoformat(),
+            "at_count": pattern.at_count,
+            "top_products": top_products,
+            "peak_day": pattern.peak_day,
+            "restock_notes": pattern.restock_notes,
+        }
+    finally:
+        db.close()
+
+
+def get_patterns(limit: int = 20) -> list[dict]:
+    import json as _json
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(LearnedPattern)
+            .order_by(LearnedPattern.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+        return [
+            {
+                "id": r.id,
+                "timestamp": r.timestamp.isoformat(),
+                "at_count": r.at_count,
+                "top_products": _json.loads(r.top_products or "[]"),
+                "peak_day": r.peak_day,
+                "restock_notes": r.restock_notes,
             }
             for r in rows
         ]
