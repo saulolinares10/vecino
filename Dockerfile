@@ -19,6 +19,7 @@ COPY . .
 
 # Copy Hermes context files
 RUN mkdir -p ~/.hermes/skills
+RUN echo "WHATSAPP_ENABLED=false" >> ~/.hermes/.env
 RUN cp SOUL.md ~/.hermes/SOUL.md
 RUN cp .hermes.md ~/.hermes/.hermes.md
 RUN cp skills/* ~/.hermes/skills/ 2>/dev/null || true
@@ -29,5 +30,5 @@ RUN pip install fastapi uvicorn anthropic python-dotenv apscheduler sqlalchemy t
 # Expose port
 EXPOSE 8000
 
-# Start both Hermes gateway and FastAPI
-CMD hermes gateway & python -m uvicorn agent.main:app --host 0.0.0.0 --port 8000
+# FastAPI always starts; Hermes gateway is optional (errors suppressed)
+CMD ["sh", "-c", "hermes gateway --no-whatsapp 2>/dev/null & python -m uvicorn agent.main:app --host 0.0.0.0 --port 8000"]
