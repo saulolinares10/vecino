@@ -24,7 +24,7 @@ RUN cp .hermes.md ~/.hermes/.hermes.md
 RUN cp skills/* ~/.hermes/skills/ 2>/dev/null || true
 
 # Install Python dependencies
-RUN pip install fastapi uvicorn anthropic python-dotenv apscheduler sqlalchemy twilio
+RUN pip install fastapi uvicorn anthropic python-dotenv apscheduler sqlalchemy twilio python-multipart
 
 # Expose port
 EXPOSE 8000
