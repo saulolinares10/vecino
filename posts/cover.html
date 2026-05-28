@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1000">
+  <title>Vecino — Cover</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 1000px;
+      height: 420px;
+      overflow: hidden;
+      background: #0f0e0d;
+    }
+
+    /* ── Base canvas ───────────────────────────────────── */
+    .cover {
+      width: 1000px;
+      height: 420px;
+      position: relative;
+      overflow: hidden;
+      font-family: 'IBM Plex Sans', 'Helvetica Neue', system-ui, sans-serif;
+
+      /* Warm dark gradient */
+      background:
+        radial-gradient(ellipse 700px 300px at 18% 55%, rgba(232,168,56,.055) 0%, transparent 70%),
+        linear-gradient(160deg, #0f0e0d 0%, #1a1510 55%, #130c08 100%);
+    }
+
+    /* ── Diagonal line texture ─────────────────────────── */
+    .cover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        transparent 0px,
+        transparent 22px,
+        rgba(255,255,255,0.032) 22px,
+        rgba(255,255,255,0.032) 23px
+      );
+      z-index: 0;
+    }
+
+    /* ── Edge vignette ─────────────────────────────────── */
+    .cover::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 100% 100% at 50% 50%,
+          transparent 50%,
+          rgba(6,4,2,.45) 100%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── Content layer ─────────────────────────────────── */
+    .content {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 72px 0 68px;
+      z-index: 1;
+      gap: 0;
+    }
+
+    /* ── Left: title + subtitle ────────────────────────── */
+    .left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-bottom: 24px; /* optical — shifts up from true center slightly */
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: rgba(232,168,56,.5);
+    }
+
+    .title {
+      font-size: 48px;
+      font-weight: 700;
+      color: #E8A838;
+      letter-spacing: -.025em;
+      line-height: 1;
+      /* warm text glow */
+      text-shadow:
+        0 0 40px rgba(232,168,56,.22),
+        0 0 80px rgba(232,168,56,.10);
+    }
+
+    .subtitle {
+      font-size: 24px;
+      font-weight: 400;
+      color: #888;
+      letter-spacing: -.01em;
+      line-height: 1.3;
+    }
+
+    /* ── Divider ───────────────────────────────────────── */
+    .divider {
+      width: 1px;
+      height: 120px;
+      background: linear-gradient(to bottom, transparent, rgba(255,255,255,.08), transparent);
+      flex-shrink: 0;
+      margin: 0 52px 24px;
+    }
+
+    /* ── Right: chat bubbles ───────────────────────────── */
+    .chat {
+      width: 276px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 24px;
+    }
+
+    .bubble {
+      padding: 10px 14px 9px;
+      border-radius: 9px;
+      font-size: 14.5px;
+      line-height: 1.45;
+      color: #e9edef;
+      position: relative;
+      /* depth shadow */
+      box-shadow:
+        0 2px 8px rgba(0,0,0,.5),
+        0 8px 24px rgba(0,0,0,.35);
+    }
+
+    /* Owner's message — dark, left side (received by Vecino) */
+    .bubble--dark {
+      background: #1f2c34;
+      border-radius: 9px 9px 9px 2px;
+      align-self: flex-start;
+      max-width: 228px;
+    }
+    .bubble--dark::before {
+      content: '';
+      position: absolute;
+      left: -6px;
+      bottom: 0;
+      border: 6px solid transparent;
+      border-bottom-color: #1f2c34;
+      border-left: 0;
+    }
+
+    /* Vecino's response — green, right side (sent by Vecino) */
+    .bubble--green {
+      background: #005c4b;
+      border-radius: 9px 9px 2px 9px;
+      align-self: flex-end;
+      max-width: 220px;
+    }
+    .bubble--green::after {
+      content: '';
+      position: absolute;
+      right: -6px;
+      bottom: 0;
+      border: 6px solid transparent;
+      border-bottom-color: #005c4b;
+      border-right: 0;
+    }
+
+    /* Small timestamp inside bubbles */
+    .bubble-ts {
+      display: block;
+      font-size: 10px;
+      color: rgba(255,255,255,.35);
+      margin-top: 3px;
+      text-align: right;
+    }
+
+    /* ── Bottom bar ────────────────────────────────────── */
+    .bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 68px;
+      z-index: 2;
+      border-top: 1px solid rgba(255,255,255,.038);
+    }
+
+    .meta {
+      font-size: 11.5px;
+      color: #555;
+      letter-spacing: .04em;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-diamond {
+      width: 20px;
+      height: 20px;
+      background: #E8A838;
+      transform: rotate(45deg);
+      border-radius: 3px;
+      box-shadow: 0 0 14px rgba(232,168,56,.35);
+      flex-shrink: 0;
+    }
+
+    .logo-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(232,168,56,.7);
+      letter-spacing: .01em;
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+
+    <div class="content">
+
+      <!-- Left: title -->
+      <div class="left">
+        <span class="eyebrow">Hermes Agent Challenge</span>
+        <h1 class="title">Vecino</h1>
+        <p class="subtitle">Un vecino que nunca olvida</p>
+      </div>
+
+      <!-- Visual divider -->
+      <div class="divider"></div>
+
+      <!-- Right: WhatsApp conversation -->
+      <div class="chat">
+        <div class="bubble bubble--dark">
+          llegaron 48 bolsas de café
+          <span class="bubble-ts">3:42 PM</span>
+        </div>
+        <div class="bubble bubble--green">
+          Listo ☕ Anotadas 48 bolsas.
+          <span class="bubble-ts">3:42 PM &nbsp;✓✓</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="bottom">
+      <span class="meta">El Cafetal, Caracas &nbsp;·&nbsp; WhatsApp &nbsp;·&nbsp; Hermes Agent</span>
+      <div class="logo">
+        <div class="logo-diamond"></div>
+        <span class="logo-name">Vecino</span>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
