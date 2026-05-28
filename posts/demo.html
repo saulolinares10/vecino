@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vecino — WhatsApp Business Agent · Powered by Hermes Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Reset ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --amber:       #E8A838;
+      --amber-dim:   rgba(232,168,56,.12);
+      --amber-glow:  rgba(232,168,56,.28);
+      --green-wa:    #25d366;
+      --page-bg:     #080808;
+      --panel-bg:    #0f0f0f;
+      --border:      #1a1a1a;
+      --border-2:    #242424;
+      --text-1:      #f0ede8;
+      --text-2:      #888;
+      --text-3:      #444;
+      --success:     #4ade80;
+      --warning:     #f59e0b;
+      --danger:      #ef4444;
+      --wa-bg:       #0b141a;
+      --wa-hdr:      #1f2c34;
+      --wa-sent:     #005c4b;
+      --wa-recv:     #1f2c34;
+      --wa-text:     #e9edef;
+      --wa-ts:       #8696a0;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
+      background: var(--page-bg);
+      color: var(--text-1);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ────────────────────────────────────────── */
+    .demo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 56px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,8,8,.96);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-diamond {
+      width: 28px;
+      height: 28px;
+      background: var(--amber);
+      transform: rotate(45deg);
+      border-radius: 5px;
+      flex-shrink: 0;
+      box-shadow: 0 0 20px var(--amber-glow);
+    }
+
+    .brand-text { display: flex; flex-direction: column; }
+    .brand-name { font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+    .brand-sub  { font-size: 10.5px; color: var(--text-2); }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10.5px;
+    }
+
+    .badge--hermes {
+      background: var(--amber-dim);
+      border: 1px solid rgba(232,168,56,.25);
+      color: var(--amber);
+    }
+
+    .badge--live {
+      border: 1px solid rgba(37,211,102,.2);
+      color: var(--green-wa);
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--green-wa);
+      border-radius: 50%;
+      animation: pulse-green 2s infinite;
+    }
+
+    @keyframes pulse-green {
+      0%,100% { box-shadow: 0 0 0 0 rgba(37,211,102,.5); }
+      50%      { box-shadow: 0 0 0 5px rgba(37,211,102,0); }
+    }
+
+    /* ── Main layout ───────────────────────────────────── */
+    .demo-main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0,46fr) minmax(0,54fr);
+      gap: 28px;
+      max-width: 1380px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 28px 24px 32px;
+    }
+
+    /* ── LEFT PANEL ────────────────────────────────────── */
+    .panel-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .panel-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    /* Phone frame */
+    .phone-wrap { filter: drop-shadow(0 40px 90px rgba(0,0,0,.85)); }
+
+    .phone {
+      width: 296px;
+      height: 616px;
+      background: linear-gradient(150deg, #2c2c2c 0%, #111 55%, #1e1e1e 100%);
+      border-radius: 46px;
+      border: 1.5px solid #2e2e2e;
+      position: relative;
+      box-shadow:
+        0 0 0 1px #000,
+        inset 0 0 0 1px rgba(255,255,255,.05),
+        inset 0 2px 0 rgba(255,255,255,.10);
+    }
+
+    /* Volume / power buttons */
+    .phone::before {
+      content: '';
+      position: absolute;
+      left: -3px; top: 108px;
+      width: 3px; height: 30px;
+      background: #2a2a2a; border-radius: 2px 0 0 2px;
+      box-shadow: 0 44px 0 #2a2a2a, 0 82px 0 #2a2a2a;
+    }
+    .phone::after {
+      content: '';
+      position: absolute;
+      right: -3px; top: 140px;
+      width: 3px; height: 56px;
+      background: #2a2a2a; border-radius: 0 2px 2px 0;
+    }
+
+    .phone-screen {
+      position: absolute;
+      inset: 8px;
+      background: var(--wa-bg);
+      border-radius: 38px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Notch */
+    .notch {
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 108px; height: 28px;
+      background: linear-gradient(150deg, #2a2a2a, #111);
+      border-radius: 0 0 18px 18px;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .notch-cam {
+      width: 8px; height: 8px;
+      background: #0a0a0a;
+      border-radius: 50%;
+      border: 1px solid #1a1a1a;
+    }
+
+    /* Status bar */
+    .wa-status {
+      height: 38px;
+      background: var(--wa-hdr);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 18px 6px;
+      flex-shrink: 0;
+      z-index: 5;
+    }
+
+    .status-time {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .status-icons { display: flex; align-items: center; gap: 5px; }
+
+    .sig {
+      display: flex;
+      align-items: flex-end;
+      gap: 1.5px;
+      height: 10px;
+    }
+    .sig span { background: #fff; width: 2.5px; border-radius: 1px; }
+    .sig span:nth-child(1) { height: 3px; }
+    .sig span:nth-child(2) { height: 5px; }
+    .sig span:nth-child(3) { height: 7px; }
+    .sig span:nth-child(4) { height: 10px; }
+
+    .batt {
+      width: 18px; height: 9px;
+      border: 1.5px solid rgba(255,255,255,.8);
+      border-radius: 2px;
+      padding: 1px;
+      position: relative;
+    }
+    .batt::after {
+      content: '';
+      position: absolute;
+      right: -4px; top: 50%;
+      transform: translateY(-50%);
+      width: 2px; height: 5px;
+      background: rgba(255,255,255,.8);
+      border-radius: 0 1px 1px 0;
+    }
+    .batt-fill { height: 100%; width: 72%; background: #fff; border-radius: 1px; }
+
+    /* WA Header */
+    .wa-hdr-bar {
+      height: 50px;
+      background: var(--wa-hdr);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      flex-shrink: 0;
+      border-bottom: 1px solid rgba(0,0,0,.3);
+    }
+
+    .wa-back { color: var(--green-wa); font-size: 18px; cursor: pointer; line-height: 1; padding: 4px 2px; }
+
+    .wa-avi {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--amber) 0%, #bf7c20 100%);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .wa-contact { flex: 1; min-width: 0; }
+    .wa-cname { font-size: 13.5px; font-weight: 600; color: var(--wa-text); white-space: nowrap; }
+    .wa-cstatus { font-size: 11px; color: var(--green-wa); }
+
+    .wa-acts { display: flex; gap: 12px; color: rgba(255,255,255,.6); font-size: 15px; }
+
+    /* Chat area */
+    .wa-chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      background-image: radial-gradient(rgba(255,255,255,.013) 1px, transparent 1px);
+      background-size: 20px 20px;
+      scroll-behavior: smooth;
+    }
+    .wa-chat::-webkit-scrollbar { width: 2px; }
+    .wa-chat::-webkit-scrollbar-thumb { background: #2a2a2a; }
+
+    /* Bubbles */
+    .brow {
+      display: flex;
+      opacity: 0;
+      transform: translateY(5px);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    .brow.show { opacity: 1; transform: translateY(0); }
+    .brow--s { justify-content: flex-end; }
+    .brow--r { justify-content: flex-start; }
+
+    .bubble {
+      max-width: 84%;
+      padding: 6px 9px 3px;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--wa-text);
+      word-break: break-word;
+      position: relative;
+    }
+
+    .bubble--s {
+      background: var(--wa-sent);
+      border-radius: 8px 8px 2px 8px;
+    }
+    .bubble--s::after {
+      content: '';
+      position: absolute;
+      right: -6px; bottom: 0;
+      border: 6px solid transparent;
+      border-bottom-color: var(--wa-sent);
+      border-right: 0;
+    }
+
+    .bubble--r {
+      background: var(--wa-recv);
+      border-radius: 8px 8px 8px 2px;
+    }
+    .bubble--r::before {
+      content: '';
+      position: absolute;
+      left: -6px; bottom: 0;
+      border: 6px solid transparent;
+      border-bottom-color: var(--wa-recv);
+      border-left: 0;
+    }
+
+    .bmeta {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 3px;
+      margin-top: 2px;
+    }
+    .bts { font-size: 10px; color: var(--wa-ts); }
+    .bck { font-size: 10px; color: #53bdeb; }
+
+    .auto-lbl {
+      font-size: 9.5px;
+      color: #4a5a6a;
+      text-align: center;
+      margin-top: 3px;
+      font-style: italic;
+    }
+
+    /* Separator */
+    .sep {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 8px 2px;
+      opacity: 0;
+      transition: opacity .35s ease;
+    }
+    .sep.show { opacity: 1; }
+    .sep-line { flex: 1; height: 1px; background: rgba(255,255,255,.07); }
+    .sep-lbl {
+      font-size: 10px;
+      color: var(--wa-ts);
+      padding: 2px 8px;
+      background: rgba(255,255,255,.04);
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+
+    /* Typing */
+    .typing-row {
+      display: flex;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity .18s, transform .18s;
+    }
+    .typing-row.show { opacity: 1; transform: translateY(0); }
+
+    .typing-bub {
+      background: var(--wa-recv);
+      border-radius: 8px 8px 8px 2px;
+      padding: 9px 12px;
+      display: flex;
+      gap: 3px;
+      align-items: center;
+      position: relative;
+    }
+    .typing-bub::before {
+      content: '';
+      position: absolute;
+      left: -6px; bottom: 0;
+      border: 6px solid transparent;
+      border-bottom-color: var(--wa-recv);
+      border-left: 0;
+    }
+    .tdot {
+      width: 6px; height: 6px;
+      background: var(--wa-ts);
+      border-radius: 50%;
+      animation: tdot 1.2s infinite ease-in-out;
+    }
+    .tdot:nth-child(2) { animation-delay: .15s; }
+    .tdot:nth-child(3) { animation-delay: .3s; }
+    @keyframes tdot {
+      0%,60%,100% { transform: translateY(0); opacity: .45; }
+      30%          { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* Replay */
+    .replay-btn {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 22px;
+      background: transparent;
+      border: 1px solid rgba(232,168,56,.5);
+      border-radius: 24px;
+      color: var(--amber);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .2s cubic-bezier(.4,0,.2,1);
+    }
+    .replay-btn:hover {
+      background: var(--amber-dim);
+      border-color: var(--amber);
+      box-shadow: 0 0 18px var(--amber-glow);
+    }
+    .replay-btn.show { display: flex; }
+
+    /* ── RIGHT PANEL ───────────────────────────────────── */
+    .panel-right {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .rs {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .rs-hdr {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.018);
+      flex-shrink: 0;
+    }
+    .rs-dot {
+      width: 6px; height: 6px;
+      background: var(--amber);
+      border-radius: 50%;
+      flex-shrink: 0;
+      animation: pulse-green 2s infinite;
+    }
+    .rs-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--amber);
+      letter-spacing: .04em;
+    }
+
+    /* ── Log section ── */
+    .log-body {
+      height: 208px;
+      overflow-y: auto;
+      padding: 8px 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10.5px;
+      line-height: 1.75;
+    }
+    .log-body::-webkit-scrollbar { width: 2px; }
+    .log-body::-webkit-scrollbar-thumb { background: #222; }
+
+    .ll {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      opacity: 0;
+      transform: translateX(-6px);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .ll.show { opacity: 1; transform: translateX(0); }
+
+    .ll-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+    .ll-ts  { color: #3a3a3a; flex-shrink: 0; }
+    .ll-mod { font-weight: 600; flex-shrink: 0; width: 72px; }
+    .ll-txt { color: #aaa; }
+
+    .m-GATEWAY { color: var(--green-wa); }
+    .m-NLP     { color: #60a5fa; }
+    .m-MEMORY  { color: #a78bfa; }
+    .m-SKILL   { color: var(--amber); }
+    .m-HOOKS   { color: var(--danger); }
+    .m-CRON    { color: #f472b6; }
+    .m-SUBAGENT{ color: #34d399; }
+
+    .d-GATEWAY { background: var(--green-wa); }
+    .d-NLP     { background: #60a5fa; }
+    .d-MEMORY  { background: #a78bfa; }
+    .d-SKILL   { background: var(--amber); }
+    .d-HOOKS   { background: var(--danger); }
+    .d-CRON    { background: #f472b6; }
+    .d-SUBAGENT{ background: #34d399; }
+
+    /* ── Capability cards ── */
+    .caps-body { padding: 10px 10px 12px; }
+
+    .caps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .cap {
+      background: #0c0c0c;
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      padding: 9px 9px 8px;
+      position: relative;
+      transition: border-color .35s cubic-bezier(.4,0,.2,1),
+                  box-shadow .35s cubic-bezier(.4,0,.2,1);
+    }
+    .cap.active {
+      border-color: rgba(232,168,56,.6);
+      box-shadow: 0 0 14px var(--amber-glow), inset 0 0 14px var(--amber-dim);
+    }
+    .cap.done {
+      border-color: rgba(74,222,128,.35);
+      box-shadow: 0 0 10px rgba(74,222,128,.12);
+    }
+
+    .cap-sdot {
+      position: absolute;
+      top: 8px; right: 8px;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #333;
+      transition: background .3s, box-shadow .3s;
+    }
+    .cap.active .cap-sdot { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+    .cap.done  .cap-sdot { background: var(--success); box-shadow: 0 0 6px rgba(74,222,128,.6); }
+
+    .cap-icon { font-size: 15px; line-height: 1; }
+    .cap-name { font-size: 10px; font-weight: 600; margin-top: 5px; color: var(--text-1); }
+    .cap-desc { font-size: 8.5px; color: var(--text-2); margin-top: 1px; line-height: 1.4; }
+    .cap-dtl  {
+      font-size: 8.5px;
+      color: var(--text-3);
+      margin-top: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      transition: color .3s;
+    }
+    .cap.active .cap-dtl { color: var(--amber); }
+    .cap.done  .cap-dtl { color: var(--success); }
+
+    /* ── Analytics ── */
+    .analytics-body {
+      display: grid;
+      grid-template-columns: 1.2fr .9fr .9fr;
+      gap: 10px;
+      padding: 10px 14px 14px;
+    }
+
+    .ab { display: flex; flex-direction: column; gap: 5px; }
+    .ab-title {
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 2px;
+    }
+
+    /* Inventory bars */
+    .inv-row { display: flex; align-items: center; gap: 5px; }
+    .inv-lbl {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--text-2);
+      width: 32px;
+      flex-shrink: 0;
+    }
+    .inv-track {
+      flex: 1;
+      height: 5px;
+      background: #1a1a1a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .inv-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 3px;
+      transition: width .75s cubic-bezier(.4,0,.2,1), background .4s;
+    }
+    .inv-fill.ok  { background: var(--amber); }
+    .inv-fill.low { background: var(--danger); }
+    .inv-qty {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8.5px;
+      color: var(--text-2);
+      width: 22px;
+      text-align: right;
+      flex-shrink: 0;
+      transition: color .3s;
+    }
+    .inv-qty.low { color: var(--danger); }
+
+    /* Sales */
+    .sales-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 30px;
+      font-weight: 700;
+      color: var(--amber);
+      line-height: 1;
+    }
+    .sales-lbl  { font-size: 8.5px; color: var(--text-2); text-transform: uppercase; letter-spacing: .07em; }
+    .sales-rev  {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12.5px;
+      color: var(--success);
+      margin-top: 4px;
+      opacity: 0;
+      transition: opacity .4s;
+    }
+    .trend-up { font-size: 10px; color: var(--success); opacity: 0; transition: opacity .4s; }
+
+    /* Patterns */
+    .skill-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 30px;
+      font-weight: 700;
+      color: var(--amber);
+      line-height: 1;
+    }
+    .skill-lbl { font-size: 8.5px; color: var(--text-2); text-transform: uppercase; letter-spacing: .07em; }
+
+    .pline {
+      opacity: 0;
+      transform: translateY(3px);
+      transition: all .28s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .pline.show { opacity: 1; transform: translateY(0); }
+    .ptxt {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8.5px;
+      color: var(--text-2);
+      line-height: 1.4;
+    }
+    .ptxt.hl { color: var(--amber); }
+
+    .conf-bar { display: flex; gap: 2px; }
+    .cblk {
+      width: 7px; height: 5px;
+      border-radius: 1px;
+      background: #222;
+      transition: background .35s;
+    }
+    .cblk.on { background: var(--amber); }
+
+    /* ── Footer ────────────────────────────────────────── */
+    .demo-footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .footer-l { font-size: 11px; color: var(--text-3); }
+    .footer-r { font-size: 11px; color: var(--text-3); }
+    .footer-r a { color: var(--amber); text-decoration: none; }
+    .footer-r a:hover { text-decoration: underline; }
+
+    /* ── Responsive ────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .demo-main {
+        grid-template-columns: 1fr;
+        padding: 16px 16px 28px;
+        gap: 24px;
+      }
+      .panel-left { order: 1; }
+      .panel-right { order: 2; }
+      .caps-grid { grid-template-columns: repeat(2,1fr); }
+      .analytics-body { grid-template-columns: 1fr; }
+      .brand-sub, .badge--hermes { display: none; }
+      .demo-header { padding: 0 16px; }
+      .demo-footer { flex-direction: column; gap: 6px; text-align: center; }
+    }
+
+    @media (max-width: 420px) {
+      .phone { width: 278px; height: 580px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────── -->
+<header class="demo-header">
+  <div class="brand">
+    <div class="brand-diamond"></div>
+    <div class="brand-text">
+      <span class="brand-name">Vecino</span>
+      <span class="brand-sub">WhatsApp Business Agent &nbsp;·&nbsp; Powered by Hermes Agent (Nous Research)</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="badge badge--hermes">⚕&nbsp; Hermes Agent v0.14.0</div>
+    <div class="badge badge--live"><div class="live-dot"></div> Live</div>
+  </div>
+</header>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<main class="demo-main">
+
+  <!-- LEFT: Phone simulation -->
+  <section class="panel-left">
+    <span class="panel-label">WhatsApp Simulation</span>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <!-- Notch -->
+        <div class="notch"><div class="notch-cam"></div></div>
+
+        <div class="phone-screen">
+          <!-- Status bar -->
+          <div class="wa-status">
+            <span class="status-time">3:42</span>
+            <div class="status-icons">
+              <div class="sig"><span></span><span></span><span></span><span></span></div>
+              <svg width="13" height="10" viewBox="0 0 13 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="6.5" cy="9" r="1" fill="white"/>
+                <path d="M3.8 6.4a3.8 3.8 0 015.4 0" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+                <path d="M1.3 4a7.3 7.3 0 0110.4 0" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+              <div class="batt"><div class="batt-fill"></div></div>
+            </div>
+          </div>
+
+          <!-- WhatsApp header -->
+          <div class="wa-hdr-bar">
+            <span class="wa-back">‹</span>
+            <div class="wa-avi">🏪</div>
+            <div class="wa-contact">
+              <div class="wa-cname">Vecino&nbsp;🏪</div>
+              <div class="wa-cstatus">en línea</div>
+            </div>
+            <div class="wa-acts">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+            </div>
+          </div>
+
+          <!-- Chat messages -->
+          <div class="wa-chat" id="chat">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="replay-btn" id="replaybtn" onclick="startDemo()">↺&nbsp; Repetir</button>
+  </section>
+
+  <!-- RIGHT: Hermes layer -->
+  <section class="panel-right">
+
+    <!-- Execution Trace -->
+    <div class="rs">
+      <div class="rs-hdr">
+        <div class="rs-dot"></div>
+        <span class="rs-title">⚕ Hermes Agent — Execution Trace</span>
+      </div>
+      <div class="log-body" id="logbody"></div>
+    </div>
+
+    <!-- Capabilities -->
+    <div class="rs">
+      <div class="rs-hdr">
+        <div class="rs-dot"></div>
+        <span class="rs-title">Hermes Features Active</span>
+      </div>
+      <div class="caps-body">
+        <div class="caps-grid">
+          <div class="cap" id="c-gateway">
+            <div class="cap-sdot"></div>
+            <div class="cap-icon">💬</div>
+            <div class="cap-name">Messaging Gateway</div>
+            <div class="cap-desc">WhatsApp native integration</div>
+            <div class="cap-dtl" id="cd-gateway">idle</div>
+          </div>
+          <div class="cap" id="c-memory">
+            <div class="cap-sdot"></div>
+            <div class="cap-icon">🧠</div>
+            <div class="cap-name">Persistent Memory</div>
+            <div class="cap-desc">FTS5 cross-session recall</div>
+            <div class="cap-dtl" id="cd-memory">idle</div>
+          </div>
+          <div class="cap" id="c-skill">
+            <div class="cap-sdot"></div>
+            <div class="cap-icon">⚡</div>
+            <div class="cap-name">Skill System</div>
+            <div class="cap-desc">vecino-inventory.md loaded</div>
+            <div class="cap-dtl" id="cd-skill">idle</div>
+          </div>
+          <div class="cap" id="c-cron">
+            <div class="cap-sdot"></div>
+            <div class="cap-icon">⏰</div>
+            <div class="cap-name">Scheduled Tasks</div>
+            <div class="cap-desc">cron-based automation</div>
+            <div class="cap-dtl" id="cd-cron">0 21 * * *</div>
+          </div>
+          <div class="cap" id="c-hooks">
+            <div class="cap-sdot"></div>
+            <div class="cap-icon">🪝</div>
+            <div class="cap-name">Event Hooks</div>
+            <div class="cap-desc">Reactive to tool events</div>
+            <div class="cap-dtl" id="cd-hooks">idle</div>
+          </div>
+          <div class="cap" id="c-subagent">
+            <div class="cap-sdot"></div>
+            <div class="cap-icon">🤖</div>
+            <div class="cap-name">Subagent Delegation</div>
+            <div class="cap-desc">Child agent spawning</div>
+            <div class="cap-dtl" id="cd-subagent">idle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics -->
+    <div class="rs">
+      <div class="rs-hdr">
+        <div class="rs-dot"></div>
+        <span class="rs-title">Inteligencia del Negocio — Aprendida por Vecino</span>
+      </div>
+      <div class="analytics-body">
+
+        <!-- Inventory -->
+        <div class="ab">
+          <div class="ab-title">Inventario</div>
+          <div class="inv-row">
+            <span class="inv-lbl">Café</span>
+            <div class="inv-track"><div class="inv-fill ok" id="b-cafe"></div></div>
+            <span class="inv-qty" id="q-cafe">0</span>
+          </div>
+          <div class="inv-row">
+            <span class="inv-lbl">Arroz</span>
+            <div class="inv-track"><div class="inv-fill ok" id="b-arroz"></div></div>
+            <span class="inv-qty" id="q-arroz">23</span>
+          </div>
+          <div class="inv-row">
+            <span class="inv-lbl">Aceite</span>
+            <div class="inv-track"><div class="inv-fill ok" id="b-aceite"></div></div>
+            <span class="inv-qty" id="q-aceite">11</span>
+          </div>
+          <div class="inv-row">
+            <span class="inv-lbl">Harina</span>
+            <div class="inv-track"><div class="inv-fill ok" id="b-harina"></div></div>
+            <span class="inv-qty" id="q-harina">35</span>
+          </div>
+        </div>
+
+        <!-- Sales -->
+        <div class="ab">
+          <div class="ab-title">Ventas Hoy</div>
+          <div class="sales-num" id="scount">0</div>
+          <div class="sales-lbl">ventas &nbsp;<span class="trend-up" id="tarrow">↑</span></div>
+          <div class="sales-rev" id="srev">Bs. 0</div>
+        </div>
+
+        <!-- Patterns -->
+        <div class="ab">
+          <div class="ab-title">Patrones</div>
+          <div class="skill-num" id="skillcount">0</div>
+          <div class="skill-lbl">skill rewrites</div>
+          <div id="pfeed" style="margin-top:5px;display:flex;flex-direction:column;gap:5px;"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- ── Footer ──────────────────────────────────────────── -->
+<footer class="demo-footer">
+  <div class="footer-l">Built for Latin American small businesses &nbsp;·&nbsp; El Cafetal, Caracas</div>
+  <div class="footer-r"><a href="https://github.com/saulolinares10/vecino">github.com/saulolinares10/vecino</a></div>
+</footer>
+
+<script>
+/* ── Utilities ──────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+let timers = [];
+const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+const clearAll = () => { timers.forEach(clearTimeout); timers = []; };
+
+function raf(fn) { requestAnimationFrame(fn); }
+
+/* ── Chat helpers ───────────────────────────────────────── */
+function appendChat(el) {
+  const chat = $('chat');
+  chat.appendChild(el);
+  setTimeout(() => { chat.scrollTop = chat.scrollHeight; }, 40);
+}
+
+function sent(text, time) {
+  const d = document.createElement('div');
+  d.className = 'brow brow--s';
+  d.innerHTML = `<div class="bubble bubble--s">${esc(text).replace(/\n/g,'<br>')}
+    <div class="bmeta"><span class="bts">${time}</span><span class="bck">✓✓</span></div>
+  </div>`;
+  appendChat(d);
+  raf(() => d.classList.add('show'));
+}
+
+function recv(text, time, auto) {
+  const el = $('typing');
+  if (el) el.classList.remove('show');
+  const d = document.createElement('div');
+  d.className = 'brow brow--r';
+  const lbl = auto
+    ? `<div class="auto-lbl">⏰ Enviado automáticamente &nbsp;·&nbsp; cron 0 21 * * *</div>`
+    : '';
+  d.innerHTML = `<div>
+    <div class="bubble bubble--r">${esc(text).replace(/\n/g,'<br>')}
+      <div class="bmeta"><span class="bts">${time}</span></div>
+    </div>${lbl}
+  </div>`;
+  appendChat(d);
+  raf(() => d.classList.add('show'));
+}
+
+function typing() {
+  let t = $('typing');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'typing';
+    t.className = 'typing-row';
+    t.innerHTML = `<div class="typing-bub">
+      <div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
+    </div>`;
+    appendChat(t);
+  }
+  raf(() => t.classList.add('show'));
+}
+
+function sep(label) {
+  const d = document.createElement('div');
+  d.className = 'sep';
+  d.innerHTML = `<div class="sep-line"></div><div class="sep-lbl">${label}</div><div class="sep-line"></div>`;
+  appendChat(d);
+  raf(() => d.classList.add('show'));
+}
+
+/* ── Log helpers ────────────────────────────────────────── */
+function log(ts, mod, txt) {
+  const body = $('logbody');
+  const d = document.createElement('div');
+  d.className = 'll';
+  d.innerHTML = `<div class="ll-dot d-${mod}"></div>
+    <span class="ll-ts">${ts}</span>
+    <span class="ll-mod m-${mod}">[${mod}]</span>
+    <span class="ll-txt">${esc(txt)}</span>`;
+  body.appendChild(d);
+  raf(() => d.classList.add('show'));
+  body.scrollTop = body.scrollHeight;
+}
+
+/* ── Capability helpers ─────────────────────────────────── */
+function capOn(id, detail) {
+  const c = $('c-'+id), cd = $('cd-'+id);
+  if (!c) return;
+  c.classList.add('active'); c.classList.remove('done');
+  if (cd && detail) cd.textContent = detail;
+}
+function capDone(id) {
+  const c = $('c-'+id);
+  if (!c) return;
+  c.classList.remove('active'); c.classList.add('done');
+}
+
+/* ── Analytics helpers ──────────────────────────────────── */
+const INV_MAX = 60;
+
+function setBar(id, qty, isLow) {
+  const b = $('b-'+id), q = $('q-'+id);
+  if (b) { b.className = `inv-fill ${isLow ? 'low' : 'ok'}`; b.style.width = Math.min(100, qty/INV_MAX*100)+'%'; }
+  if (q) { q.textContent = qty; q.className = `inv-qty${isLow ? ' low' : ''}`; }
+}
+
+function countTo(elId, target, dur) {
+  const el = $(elId);
+  if (!el) return;
+  const start = parseInt(el.textContent) || 0;
+  const t0 = performance.now();
+  const tick = now => {
+    const p = Math.min(1, (now-t0)/dur);
+    el.textContent = Math.round(start + (target-start)*p);
+    if (p < 1) raf(tick);
+  };
+  raf(tick);
+}
+
+function setRev(txt) {
+  const el = $('srev'); if (!el) return;
+  el.textContent = txt; el.style.opacity = '1';
+}
+
+function showTrend() {
+  const el = $('tarrow'); if (el) el.style.opacity = '1';
+}
+
+let _skillN = 0;
+function bumpSkill() {
+  _skillN++;
+  const el = $('skillcount'); if (el) el.textContent = _skillN;
+}
+
+function pattern(txt, hl, conf) {
+  const feed = $('pfeed');
+  const d = document.createElement('div');
+  d.className = 'pline';
+  const bars = conf != null
+    ? `<div class="conf-bar">${Array.from({length:5},(_,i)=>`<div class="cblk${i<conf?' on':''}"></div>`).join('')}</div>`
+    : '';
+  d.innerHTML = `<div class="ptxt${hl?' hl':''}">${esc(txt)}</div>${bars}`;
+  feed.appendChild(d);
+  raf(() => d.classList.add('show'));
+}
+
+/* ── Timeline ───────────────────────────────────────────── */
+function startDemo() {
+  clearAll();
+
+  // Reset chat
+  $('chat').innerHTML = '';
+  $('logbody').innerHTML = '';
+  $('pfeed').innerHTML = '';
+  $('replaybtn').classList.remove('show');
+  $('srev').style.opacity = '0';
+  $('tarrow').style.opacity = '0';
+  $('scount').textContent = '0';
+  $('skillcount').textContent = '0';
+  _skillN = 0;
+
+  ['cafe','arroz','aceite','harina'].forEach(id => {
+    const b = $('b-'+id); if(b){b.style.width='0%';b.className='inv-fill ok';}
+    const q = $('q-'+id); if(q){q.className='inv-qty';}
+  });
+  $('q-arroz').textContent='23';
+  $('q-aceite').textContent='11';
+  $('q-harina').textContent='35';
+
+  ['gateway','memory','skill','cron','hooks','subagent'].forEach(id => {
+    const c = $('c-'+id); if(c){c.classList.remove('active','done');}
+    const cd = $('cd-'+id); if(cd && id!=='cron') cd.textContent='idle';
+  });
+
+  // ─── t=400  initial bars fill ───────────────────────────
+  at(400, () => { setBar('arroz',23,false); setBar('aceite',11,false); setBar('harina',35,false); });
+
+  // ═══════════════════════════════════════════════════════════
+  // MSG 1  ·  llegaron 48 bolsas de café
+  // ═══════════════════════════════════════════════════════════
+  at(900,  () => sent('llegaron 48 bolsas de café', '3:42 PM'));
+  at(1000, () => { log('15:42:01','GATEWAY','WhatsApp message received');    capOn('gateway','msg received'); });
+  at(1120, () => { log('15:42:01','NLP','Intent parsed → STOCK_IN'); });
+  at(1240, () => { log('15:42:01','NLP','Entities: {product: "café", qty: 48, unit: "bolsas"}'); });
+  at(1360, () => { log('15:42:01','MEMORY','Reading inventory store...');    capOn('memory','reading'); });
+  at(1480, () => { log('15:42:02','MEMORY','Writing: café +48 bolsas → total: 48'); });
+  at(1600, () => { log('15:42:02','SKILL','Loaded: vecino-inventory.md');    capOn('skill','vecino-inventory.md'); });
+  at(1720, () => { log('15:42:02','GATEWAY','Sending WhatsApp response'); });
+  at(1840, () => { log('15:42:02','MEMORY','Interaction #1 logged'); });
+  at(2000, () => typing());
+  at(3550, () => {
+    recv('Listo ☕ Anotadas 48 bolsas de café. Total: 48 unidades en inventario. Último ingreso: hoy.', '3:42 PM');
+    capDone('gateway'); capDone('memory'); capDone('skill');
+    setBar('cafe',48,false);
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // MSG 2  ·  cuánto tengo de arroz
+  // ═══════════════════════════════════════════════════════════
+  at(6300,  () => sent('cuánto tengo de arroz', '3:45 PM'));
+  at(6400,  () => { log('15:45:11','GATEWAY','WhatsApp message received');   capOn('gateway','msg received'); });
+  at(6520,  () => { log('15:45:11','NLP','Intent parsed → STOCK_QUERY'); });
+  at(6640,  () => { log('15:45:11','MEMORY','FTS5 search: "arroz" across 3 sessions'); capOn('memory','FTS5 query'); });
+  at(6760,  () => { log('15:45:11','MEMORY','Found: arroz, 23 kg, last updated 3 days ago'); });
+  at(6880,  () => { log('15:45:12','GATEWAY','Sending WhatsApp response'); });
+  at(7050,  () => typing());
+  at(8400,  () => {
+    recv('Tienes 23 kg de arroz 🌾 — último ingreso hace 3 días.', '3:45 PM');
+    capDone('gateway'); capDone('memory');
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // MSG 3  ·  vendí 5 aceites
+  // ═══════════════════════════════════════════════════════════
+  at(11200, () => sent('vendí 5 aceites', '3:48 PM'));
+  at(11300, () => { log('15:48:33','GATEWAY','WhatsApp message received');   capOn('gateway','msg received'); });
+  at(11420, () => { log('15:48:33','NLP','Intent parsed → SALE_LOG'); });
+  at(11540, () => { log('15:48:33','MEMORY','Writing sale: aceite -5 → remaining: 6');  capOn('memory','writing sale'); });
+  at(11660, () => { log('15:48:33','HOOKS','low_stock_alert fired: aceite < 10 units'); capOn('hooks','low_stock_alert'); });
+  at(11780, () => { log('15:48:34','SKILL','Loaded: vecino-inventory.md');   capOn('skill','vecino-inventory.md'); });
+  at(11900, () => { log('15:48:34','GATEWAY','Sending WhatsApp response (with alert)'); });
+  at(12050, () => typing());
+  at(13600, () => {
+    recv('Anotado 🙌 5 aceites despachados. Hoy llevas 18 ventas.\n⚠️ Ojo — aceite bajando. Solo quedan 6 unidades.', '3:49 PM');
+    capDone('gateway'); capDone('memory'); capDone('skill'); capDone('hooks');
+    setBar('aceite',6,true);
+    countTo('scount',18,500);
+    showTrend();
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // MSG 4  ·  cómo voy hoy
+  // ═══════════════════════════════════════════════════════════
+  at(16600, () => sent('cómo voy hoy', '3:52 PM'));
+  at(16700, () => { log('15:52:44','GATEWAY','WhatsApp message received');   capOn('gateway','msg received'); });
+  at(16820, () => { log('15:52:44','NLP','Intent parsed → SUMMARY'); });
+  at(16940, () => { log('15:52:44','MEMORY','Aggregating events from today');  capOn('memory','aggregating'); });
+  at(17060, () => { log('15:52:44','MEMORY','18 sales found · top product: harina'); });
+  at(17180, () => { log('15:52:45','SKILL','Loaded: vecino-summary.md');     capOn('skill','vecino-summary.md'); });
+  at(17300, () => { log('15:52:45','GATEWAY','Sending WhatsApp response'); });
+  at(17450, () => typing());
+  at(19050, () => {
+    recv('Resumen parcial ☀️\n- 18 ventas registradas\n- Más vendido: harina de maíz (8 und.)\n- ⚠️ Aceite bajo — pide mañana\nVas bien, Don Ramón 🙌', '3:52 PM');
+    capDone('gateway'); capDone('memory'); capDone('skill');
+  });
+  at(19400, () => pattern('vecino-inventory.md — interaction #18', false, 2));
+  at(19700, () => bumpSkill());
+
+  // ═══════════════════════════════════════════════════════════
+  // CRON  ·  9 PM resumen automático
+  // ═══════════════════════════════════════════════════════════
+  at(22000, () => sep('9:00 PM — Mensaje automático'));
+
+  at(22600, () => { log('21:00:00','CRON','Job triggered: vecino-daily-summary');     capOn('cron','triggered'); });
+  at(22720, () => { log('21:00:00','CRON','Schedule: 0 21 * * * (daily at 9 PM)'); });
+  at(22840, () => { log('21:00:01','SKILL','Loaded: vecino-summary.md');              capOn('skill','vecino-summary.md'); });
+  at(22960, () => { log('21:00:01','MEMORY','Aggregating 34 sales from today');        capOn('memory','aggregating'); });
+  at(23080, () => { log('21:00:01','SUBAGENT','Delegating: format_summary → child agent'); capOn('subagent','child spawned'); });
+  at(23200, () => { log('21:00:02','SUBAGENT','Child agent complete (tokens: 187)'); });
+  at(23320, () => { log('21:00:02','GATEWAY','Sending scheduled WhatsApp message');   capOn('gateway','scheduled msg'); });
+  at(23440, () => { log('21:00:02','SKILL','Writing skill: peak_hour_pattern detected'); });
+  at(23600, () => typing());
+  at(25200, () => {
+    recv('Buenas noches 🌙 Resumen del martes:\n- 34 ventas · Bs. 2.340 en caja\n- Más vendido: café (12 unidades)\n- Mejor hora: 11am–1pm\n⚠️ Aceite bajo — considera pedir mañana\nQue descanses 🙌', '9:00 PM', true);
+    capDone('gateway'); capDone('memory'); capDone('skill'); capDone('cron'); capDone('subagent');
+    countTo('scount',34,700);
+    setRev('Bs. 2.340');
+  });
+  at(25600, () => pattern('Pattern: aceite restock → martes', false, 3));
+  at(25850, () => pattern('Confidence: medium', true, null));
+  at(26100, () => bumpSkill());
+
+  // ── Done ─────────────────────────────────────────────────
+  at(28500, () => $('replaybtn').classList.add('show'));
+}
+
+// ── Auto-start ────────────────────────────────────────────
+startDemo();
+</script>
+</body>
+</html>
